@@ -1,4 +1,7 @@
-import os, json, logging, subprocess
+import os
+import json
+import logging
+import subprocess
 import boto3
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -41,24 +44,30 @@ error_response = {
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     message_text = event.message.text
-    print(message_text)
+    logger.info("message is " + message_text)
 
-    if (message_text == "電気ついてる？"):
-        return_message_text = get_led_check_message(get_sim_tags())
-    elif (message_text == "電気つけて"):
-        set_led("1")
-        return_message_text = "つけるね"
-    elif (message_text == "電気消して"):
-        set_led("0")
-        return_message_text = "消すね"
-    else:
-        print("fuga")
-        return_message_text = "メニュー中のボタンを押してね"
+    try:
+        if (message_text == "電気ついてる？"):
+            return_message_text = get_led_check_message(get_sim_tags())
+        elif (message_text == "電気つけて"):
+            set_led("1")
+            return_message_text = "つけるね"
+        elif (message_text == "電気消して"):
+            set_led("0")
+            return_message_text = "消すね"
+        else:
+            logger.warn("Invalid input")
+            return_message_text = "メニュー中のボタンを押してね"
 
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(return_message_text)
-    )
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(return_message_text)
+        )
+    except:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage("エラーだよ")
+        )
 
 
 def get_sim_tags():
