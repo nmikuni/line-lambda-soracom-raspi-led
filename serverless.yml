@@ -44,7 +44,7 @@ functions:
                     pattern: ''
                     template: $input.path("$.body")
   execute:
-    handler: bot_execute.lambda_handler
+    handler: bot_execute_ip_access.lambda_handler
     description: sqsメッセージを解析して、LINEに返信します（line-bot-sdk-python）
     timeout: 60
     memorySize: 256

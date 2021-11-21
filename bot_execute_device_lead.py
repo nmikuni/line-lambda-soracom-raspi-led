@@ -1,7 +1,4 @@
-import os
-import json
-import logging
-import subprocess
+import os, json, logging, subprocess
 import boto3
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
