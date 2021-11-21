@@ -56,6 +56,8 @@ functions:
       - sqs:
           arn: !GetAtt BotJobQueue.Arn
           batchSize: 1
+    layers:
+      - arn:aws:lambda:ap-northeast-1:717257875195:layer:soracom-cli-0104:1
 resources:
   Resources:
     BotJobQueue:
