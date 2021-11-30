@@ -90,7 +90,7 @@ def create_url():
 
 
 def delete_port_mapping(url):
-    # url = https://35-75-205-78.napter.soracom.io:44727/
+    # url = https://xx-xx-xx-xx.napter.soracom.io:xxxxx/
     ip_address = re.split(r'[/\.]', url)[2].replace('-', '.')
     port = re.split(r'[:/]', url)[4]
 

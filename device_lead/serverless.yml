@@ -39,7 +39,7 @@ functions:
                     pattern: ''
                     template: $input.path("$.body")
   execute:
-    handler: bot_execute_ip_access.lambda_handler
+    handler: bot_execute_device_lead.lambda_handler
     description: sqsメッセージを解析して、LED を操作します
     timeout: 60
     memorySize: 256

@@ -1,16 +1,13 @@
 import os
 import json
 import logging
-import subprocess
 import boto3
+import datetime
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 channel_secret = os.getenv('LINE_CHANNEL_SECRET')
 channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
-soracom_auth_key_id = os.getenv('SORACOM_AUTH_KEY_ID')
-soracom_auth_key = os.getenv('SORACOM_AUTH_KEY')
-soracom_imsi = os.getenv('IMSI')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,9 +18,17 @@ handler = WebhookHandler(channel_secret)
 sqs = boto3.client('sqs')
 queue_url = os.getenv('QUEUE_URL')
 
-# SORACOM API
-soracom_common_arg = ' --auth-key-id ' + \
-    soracom_auth_key_id + ' --auth-key ' + soracom_auth_key
+# AWS IoT
+endpoint_url = os.getenv('AWS_IOT_ENDPOINT_URL')
+thing_name = os.getenv('AWS_IOT_THING_NAME')
+
+client = boto3.client(
+    'iot-data', endpoint_url=endpoint_url)
+
+response = client.get_thing_shadow(
+    thingName=thing_name,
+    shadowName='led'
+)
 
 # Lambda Response
 ok_response = {
@@ -47,7 +52,7 @@ def handle_message(event):
 
     try:
         if (message_text == "電気ついてる？"):
-            return_message_text = get_led_check_message(get_sim_tags())
+            return_message_text = get_led_check_message()
         elif (message_text == "電気つけて"):
             set_led("1")
             return_message_text = "つけるね"
@@ -69,30 +74,30 @@ def handle_message(event):
         )
 
 
-def get_sim_tags():
-    soracom_cli_get_sim = "soracom subscribers get --imsi " + \
-        soracom_imsi + soracom_common_arg
-    sim_info = json.loads((subprocess.run(
-        soracom_cli_get_sim, shell=True, stdout=subprocess.PIPE)).stdout.decode())
-    # tags = {"LED":"1","lastUpdated":"[JST] 2021-11-20T23:43","name":"RasPi-vSIM"}
-    return sim_info['tags']
+def get_led_check_message():
+    response = client.get_thing_shadow(
+        thingName=thing_name,
+        shadowName='led'
+    )
 
+    payload = json.loads(response["payload"].read().decode())
 
-def get_led_check_message(tags):
-    led_state = int(tags['LED'])
-    last_updated = tags['lastUpdated']
-    led_state_message = 'ついてるよ' if (led_state) else '消えてるよ'
-    ret_message = led_state_message + "\n最終更新: " + last_updated
+    led_state = payload["state"].get("reported", {}).get("led")
+    timestamp_jst = payload["timestamp"] + 32400
+    last_updated = str(datetime.datetime.fromtimestamp(timestamp_jst))
+
+    led_state_message = 'ついてるよ' if (int(led_state)) else '消えてるよ'
+    ret_message = led_state_message + "\n最終更新 [JST]: " + last_updated
     return ret_message
 
 
 def set_led(led_state):
-    soracom_cli_put_sim_tags = "soracom subscribers put-tags --imsi " + \
-        soracom_imsi + \
-        ' --body \'[{"tagName":"LED","tagValue":"' + \
-        led_state + '"}]\'' + soracom_common_arg
-    subprocess.run(soracom_cli_put_sim_tags,
-                   shell=True, stdout=subprocess.PIPE)
+    shadowDoc = {'state': {'desired': {'led': led_state}}}
+    new_payload = bytes(json.dumps(shadowDoc), "utf-8")
+
+    res = client.update_thing_shadow(
+        thingName=thing_name, shadowName='led', payload=new_payload)
+
     return
 
 

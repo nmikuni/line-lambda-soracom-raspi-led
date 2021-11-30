@@ -39,7 +39,7 @@ functions:
                     pattern: ''
                     template: $input.path("$.body")
   execute:
-    handler: bot_execute_ip_access.lambda_handler
+    handler: bot_execute_application.lambda_handler
     description: sqsメッセージを解析して、LED を操作します
     timeout: 60
     memorySize: 256
@@ -101,6 +101,7 @@ resources:
               Action: sts:AssumeRole
         ManagedPolicyArns:
           - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+          - arn:aws:iam::aws:policy/AWSIoTDataAccess
         Policies:
           - PolicyName: executePolicy
             PolicyDocument:
